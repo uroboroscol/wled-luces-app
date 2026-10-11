@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>WLED Luces App</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#08080E;color:#E0E0EC;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:12px;user-select:none;padding-bottom:30px}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #1A1A28}
+.hdr h1{font-size:18px;font-weight:700;background:linear-gradient(90deg,#FF1744,#00E5FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-btn{background:#1A1A28;color:#00E5FF;border:1px solid #2A2A40;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600}
+.vu-box{background:#101018;padding:8px 12px;border-radius:10px;margin-bottom:12px;border:1px solid #1E1E2C}
+.vu-bar{height:6px;background:#202030;border-radius:3px;overflow:hidden;margin-top:4px}
+.vu-val{height:100%;width:0%;background:linear-gradient(90deg,#00E5FF,#FF1744);transition:width .05s linear}
+.fft{display:flex;gap:3px;height:24px;align-items:flex-end;margin-top:6px}
+.fft div{flex:1;background:#FF1744;height:10%;border-radius:1px;transition:height .05s linear;opacity:.8}
+.card-title{font-size:11px;font-weight:700;color:#8E8EA8;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
+.btn{background:#12121C;border:1px solid #202030;color:#DDD;border-radius:8px;padding:8px 6px;text-align:center;font-size:12px;font-weight:600;display:flex;flex-direction:column;justify-content:center;min-height:48px}
+.btn small{font-size:9px;color:#777;margin-top:2px;font-weight:400}
+.btn.on{border-color:#00E5FF;background:#00E5FF18;color:#00E5FF;box-shadow:0 0 10px #00E5FF44}
+.pal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}
+.pal-btn{background:#12121C;border:1px solid #202030;border-radius:8px;overflow:hidden;padding:0;color:#DDD;font-size:11px;text-align:center}
+.pal-btn span{display:block;height:20px}
+.pal-btn div{padding:4px}
+.pal-btn.on{border-color:#FFF;box-shadow:0 0 10px #FFF5}
+.card{background:#101018;border:1px solid #1A1A28;border-radius:10px;padding:12px;margin-top:12px}
+.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px}
+.row input[type=range]{flex:1;margin:0 12px;accent-color:#FF1744}
+.row input[type=number]{background:#181824;color:#FFF;border:1px solid #333;border-radius:6px;padding:4px 6px;width:55px;text-align:center}
+.modal{display:none;position:fixed;inset:0;background:#000C;justify-content:center;align-items:center;padding:20px;z-index:99}
+.modal.open{display:flex}
+.modal-box{background:#141420;border:1px solid #2A2A40;border-radius:14px;padding:18px;width:100%;max-width:320px}
+.modal-box h3{margin-bottom:12px;font-size:14px;color:#00E5FF}
+.modal-box input{width:100%;background:#0A0A10;color:#FFF;border:1px solid #303048;padding:8px 10px;border-radius:8px;margin-bottom:12px;font-size:13px}
+.modal-box button{width:100%;background:#FF1744;color:#FFF;border:none;padding:10px;border-radius:8px;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>⚡ WLED LUCES</h1>
+  <button class="hdr-btn" id="btn_cfg">⚙️ 192.168.40.16</button>
+</div>
+
+<div class="vu-box">
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:#888">
+    <span>MICRÓFONO EN VIVO</span>
+    <span id="txt_vol">0%</span>
+  </div>
+  <div class="vu-bar"><div class="vu-val" id="vu_val"></div></div>
+  <div class="fft" id="fft_box"></div>
+</div>
+
+<div class="card-title">Breaks / Calmos</div>
+<div class="grid" id="grid_calmos"></div>
+
+<div class="card-title">Groove / Ritmo</div>
+<div class="grid" id="grid_groove"></div>
+
+<div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+  <span>Paletas de Color</span>
+  <span style="font-size:11px;color:#AAA">Aleatorio cada: <input type="number" id="rnd_t" value="8" min="1" max="60"> s</span>
+</div>
+<div class="pal-grid" id="grid_pal"></div>
+
+<div class="card">
+  <div class="row">
+    <span>Brillo general</span>
+    <input type="range" id="brillo" min="0" max="1" step="0.01" value="0.9">
+    <span id="brillo_v">90%</span>
+  </div>
+  <div class="row">
+    <span>Sensibilidad micro</span>
+    <input type="range" id="sens" min="0.3" max="5" step="0.1" value="1.0">
+    <span id="sens_v">1.0x</span>
+  </div>
+  <div class="row">
+    <span>Girar inicio (Offset)</span>
+    <input type="range" id="offset" min="0" max="149" step="1" value="0">
+    <span id="offset_v">0</span>
+  </div>
+</div>
+
+<div class="modal" id="modal_cfg">
+  <div class="modal-box">
+    <h3>⚙️ Conexión WLED</h3>
+    <label style="font-size:11px;color:#888">Dirección IP</label>
+    <input type="text" id="cfg_ip" value="192.168.40.16">
+    <label style="font-size:11px;color:#888">Número de LEDs</label>
+    <input type="number" id="cfg_leds" value="150">
+    <button id="btn_save_cfg">Guardar y Conectar</button>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const S={efecto:'voz_centro',paleta:'techno',brillo:0.9,sens:1.0,rnd_t:8,ip:'192.168.40.16',leds:150};
+
+const ALL_FX={
+  voz_centro:['Espectro Global','1 sola onda gigante'],
+  voz:['Espectro Vocal','4 ondas (paredes)'],
+  voz_laser:['Contorno Vocal','Anillo brillante'],
+  solido:['Color Sólido','Luz fija y limpia'],
+  aurora:['Aurora','Ondas melódicas'],
+  respira:['Respira','Pulso suave'],
+  olas:['Olas','Olas flotando'],
+  ambiente:['Ambiente','Degradado lento'],
+  corazon:['Latido','Doble pulso'],
+  rotor:['Rotor','Cometas girando'],
+  pulso:['Pulso','Techo al kick'],
+  ondas:['Ondas','Explosión de kick'],
+  paredes:['Paredes','Una pared por beat'],
+  cortes:['Cortes','Segmentos saltando'],
+  scanner:['Scanner','Haces cruzados'],
+  espectro:['Espectro','16 frecuencias'],
+  chispas:['Chispas','Destellos de hi-hat'],
+  relampago:['Relámpago','Golpes al azar'],
+  laser:['Láser','Puntos barriendo'],
+  espejo:['Espejo','Cometas que chocan'],
+  barrido:['Barrido','Ola de color lenta']
+};
+
+const CALMOS=['voz_centro','voz','voz_laser','solido','aurora','respira','olas','ambiente','corazon'];
+const GROOVE=['rotor','pulso','ondas','paredes','cortes','scanner','espectro','chispas','relampago','laser','espejo','barrido'];
+
+const PALETAS={
+  aleatoria:[[255,23,68],[0,229,255],[124,0,255]],
+  rojo_morado:[[255,0,0],[128,0,128],[255,255,255]],
+  morado_rojo:[[128,0,128],[255,0,0],[255,255,255]],
+  neon_vampire:[[255,0,50],[75,0,130],[255,0,0]],
+  dark_sith:[[180,0,0],[50,0,80],[255,0,0]],
+  techno:[[255,0,0],[255,30,0],[255,255,255]],
+  rojo_puro:[[255,0,0],[180,0,0],[255,255,255]],
+  sangre:[[180,0,0],[80,0,0],[255,0,40]],
+  sith_red:[[255,0,0],[100,0,0],[0,0,0]],
+  alerta_roja:[[255,0,0],[255,60,0],[255,230,0]],
+  red_neon:[[255,0,80],[255,0,0],[255,120,160]],
+  crimson_gold:[[220,20,60],[255,215,0],[255,255,255]],
+  infierno:[[255,0,0],[255,80,0],[255,190,0]],
+  fuego:[[255,0,0],[255,100,0],[255,230,0]],
+  cyber:[[0,229,255],[255,0,229],[255,255,255]],
+  matrix:[[0,255,0],[0,100,0],[255,255,255]],
+  galaxia:[[120,0,255],[0,200,255],[255,255,255]]
+};
+
+function send(obj){
+  if(window.AndroidBridge && window.AndroidBridge.set){
+    window.AndroidBridge.set(JSON.stringify(obj));
+  }
+}
+
+// Generar botones
+function mkBtn(id, cont){
+  const [n,d] = ALL_FX[id] || [id,''];
+  const b = document.createElement('button');
+  b.className = 'btn';
+  b.id = 'fx_' + id;
+  b.innerHTML = n + '<small>' + d + '</small>';
+  b.onclick = ()=>{
+    S.efecto = id;
+    send({efecto: id});
+    pintar();
+  };
+  $(cont).appendChild(b);
+}
+CALMOS.forEach(id=>mkBtn(id,'grid_calmos'));
+GROOVE.forEach(id=>mkBtn(id,'grid_groove'));
+
+// Generar paletas
+Object.keys(PALETAS).forEach(p=>{
+  const cols = PALETAS[p].map(c=>'rgb('+c.join(',')+')');
+  const b = document.createElement('button');
+  b.className = 'pal-btn';
+  b.id = 'pal_' + p;
+  b.innerHTML = '<span style="background:linear-gradient(90deg,'+cols.join(',')+')"></span><div>' + (p==='aleatoria'?'🎲 Aleatoria':p) + '</div>';
+  b.onclick = ()=>{
+    S.paleta = p;
+    send({paleta: p});
+    pintar();
+  };
+  $('grid_pal').appendChild(b);
+});
+
+// Generar barras FFT
+for(let i=0;i<16;i++){
+  const d=document.createElement('div');
+  d.id='fft_'+i;
+  $('fft_box').appendChild(d);
+}
+
+function pintar(){
+  document.querySelectorAll('.btn').forEach(b=>b.classList.toggle('on',b.id==='fx_'+S.efecto));
+  document.querySelectorAll('.pal-btn').forEach(b=>b.classList.toggle('on',b.id==='pal_'+S.paleta));
+}
+
+$('rnd_t').oninput=()=>{
+  const val=parseFloat($('rnd_t').value)||8;
+  S.rnd_t=val;
+  S.paleta='aleatoria';
+  send({rnd_t:val, paleta:'aleatoria'});
+  pintar();
+};
+
+$('brillo').oninput=()=>{
+  const v=parseFloat($('brillo').value);
+  $('brillo_v').textContent=Math.round(v*100)+'%';
+  send({brillo:v});
+};
+
+$('sens').oninput=()=>{
+  const v=parseFloat($('sens').value);
+  $('sens_v').textContent=v.toFixed(1)+'x';
+  send({sens:v});
+};
+
+$('offset').oninput=()=>{
+  const v=parseInt($('offset').value);
+  $('offset_v').textContent=v;
+  send({offset:v});
+};
+
+$('btn_cfg').onclick=()=>$('modal_cfg').classList.add('open');
+$('btn_save_cfg').onclick=()=>{
+  const ip=$('cfg_ip').value.trim();
+  const leds=parseInt($('cfg_leds').value)||150;
+  S.ip=ip; S.leds=leds;
+  $('btn_cfg').textContent='⚙️ '+ip;
+  if(window.AndroidBridge && window.AndroidBridge.connect){
+    window.AndroidBridge.connect(ip, leds);
+  }
+  $('modal_cfg').classList.remove('open');
+};
+
+window.onAndroidLive=function(d){
+  if(!d) return;
+  $('vu_val').style.width=Math.min(100, Math.round(d.volumen*100))+'%';
+  $('txt_vol').textContent=Math.round(d.volumen*100)+'%';
+  if(d.espectro){
+    for(let i=0;i<16 && i<d.espectro.length;i++){
+      const el=$('fft_'+i);
+      if(el) el.style.height=Math.max(10, Math.round(d.espectro[i]*100))+'%';
+    }
+  }
+};
+
+pintar();
+</script>
+</body>
+</html>

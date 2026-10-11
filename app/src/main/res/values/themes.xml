@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.WLEDLuces" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#08080E</item>
+        <item name="android:navigationBarColor">#08080E</item>
+        <item name="android:windowBackground">#08080E</item>
+    </style>
+</resources>
