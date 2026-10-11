@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.*;
+import android.util.Base64;
 import android.webkit.*;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 syncLiveUi();
-                handler.postDelayed(this, 100); // 10 updates por segundo a la UI
+                handler.postDelayed(this, 50); // 20 FPS para la vista previa 2D
             }
         }, 100);
     }
@@ -82,16 +83,25 @@ public class MainActivity extends AppCompatActivity {
         if (s == null || webView == null) return;
         try {
             AudioProcessor.AudioFeatures f = s.getLatestFeatures();
+            LucesEngine engine = s.getEngine();
             JSONObject d = new JSONObject();
+
+            d.put("bpm", (double) engine.getBpm());
+            d.put("beat", engine.getBeat());
             d.put("volumen", (double) f.total);
             d.put("kick", f.kick);
+            d.put("hat", f.hat);
             d.put("vocal", (double) f.vocal);
+            d.put("paleta", engine.getPaleta());
+            d.put("efecto", engine.getEfecto());
+            d.put("genero", engine.getGenero());
+            d.put("conectado", s.getUdpSender().isConectado());
 
             JSONArray spec = new JSONArray();
             for (float v : f.espectro) spec.put((double) v);
             d.put("espectro", spec);
 
-            String js = "if(window.onAndroidLive)window.onAndroidLive(" + d.toString() + ");";
+            String js = "if(window.onLiveStream)window.onLiveStream(" + d.toString() + ");";
             webView.evaluateJavascript(js, null);
         } catch (Exception ignored) {}
     }

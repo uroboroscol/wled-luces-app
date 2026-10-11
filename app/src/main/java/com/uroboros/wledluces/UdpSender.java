@@ -12,6 +12,7 @@ public class UdpSender {
     private int numLeds = 150;
     private DatagramSocket socket;
     private InetAddress address;
+    private volatile boolean conectado = true;
 
     public UdpSender() {
         reconectar(ip, numLeds);
@@ -20,19 +21,38 @@ public class UdpSender {
     public synchronized void reconectar(String newIp, int leds) {
         this.ip = newIp;
         this.numLeds = leds;
+        this.conectado = true;
         try {
             if (socket == null || socket.isClosed()) {
                 socket = new DatagramSocket();
             }
             address = InetAddress.getByName(ip);
-            Log.i(TAG, "Configurado UDP para WLED en " + ip + ":" + PORT + " (" + leds + " LEDs)");
+            Log.i(TAG, "Conectado WLED UDP en " + ip + ":" + PORT + " (" + leds + " LEDs)");
         } catch (Exception e) {
-            Log.e(TAG, "Error resolviendo IP WLED: " + e.getMessage());
+            Log.e(TAG, "Error resolviendo IP: " + e.getMessage());
         }
     }
 
+    public synchronized void desconectar() {
+        if (conectado) {
+            try {
+                // Enviar cuadro negro para apagar antes de desconectar
+                byte[] off = new byte[numLeds * 3];
+                enviarRaw(off);
+            } catch (Exception ignored) {}
+        }
+        this.conectado = false;
+        Log.i(TAG, "Desconectado de WLED");
+    }
+
+    public boolean isConectado() { return conectado; }
+
     public synchronized void enviar(byte[] rgb) {
-        if (socket == null || address == null || rgb == null) return;
+        if (!conectado || socket == null || address == null || rgb == null) return;
+        enviarRaw(rgb);
+    }
+
+    private void enviarRaw(byte[] rgb) {
         try {
             int len = rgb.length;
             if (len <= 490) {
@@ -55,9 +75,7 @@ public class UdpSender {
                     socket.send(dp);
                 }
             }
-        } catch (Exception e) {
-            // Silently ignore UDP send errors
-        }
+        } catch (Exception ignored) {}
     }
 
     public String getIp() { return ip; }

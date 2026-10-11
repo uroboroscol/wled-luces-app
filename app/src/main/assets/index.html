@@ -1,251 +1,286 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>WLED Luces App</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:#08080E;color:#E0E0EC;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:12px;user-select:none;padding-bottom:30px}
-.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #1A1A28}
-.hdr h1{font-size:18px;font-weight:700;background:linear-gradient(90deg,#FF1744,#00E5FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hdr-btn{background:#1A1A28;color:#00E5FF;border:1px solid #2A2A40;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600}
-.vu-box{background:#101018;padding:8px 12px;border-radius:10px;margin-bottom:12px;border:1px solid #1E1E2C}
-.vu-bar{height:6px;background:#202030;border-radius:3px;overflow:hidden;margin-top:4px}
-.vu-val{height:100%;width:0%;background:linear-gradient(90deg,#00E5FF,#FF1744);transition:width .05s linear}
-.fft{display:flex;gap:3px;height:24px;align-items:flex-end;margin-top:6px}
-.fft div{flex:1;background:#FF1744;height:10%;border-radius:1px;transition:height .05s linear;opacity:.8}
-.card-title{font-size:11px;font-weight:700;color:#8E8EA8;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
-.btn{background:#12121C;border:1px solid #202030;color:#DDD;border-radius:8px;padding:8px 6px;text-align:center;font-size:12px;font-weight:600;display:flex;flex-direction:column;justify-content:center;min-height:48px}
-.btn small{font-size:9px;color:#777;margin-top:2px;font-weight:400}
-.btn.on{border-color:#00E5FF;background:#00E5FF18;color:#00E5FF;box-shadow:0 0 10px #00E5FF44}
-.pal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px}
-.pal-btn{background:#12121C;border:1px solid #202030;border-radius:8px;overflow:hidden;padding:0;color:#DDD;font-size:11px;text-align:center}
-.pal-btn span{display:block;height:20px}
-.pal-btn div{padding:4px}
-.pal-btn.on{border-color:#FFF;box-shadow:0 0 10px #FFF5}
-.card{background:#101018;border:1px solid #1A1A28;border-radius:10px;padding:12px;margin-top:12px}
-.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px}
-.row input[type=range]{flex:1;margin:0 12px;accent-color:#FF1744}
-.row input[type=number]{background:#181824;color:#FFF;border:1px solid #333;border-radius:6px;padding:4px 6px;width:55px;text-align:center}
-.modal{display:none;position:fixed;inset:0;background:#000C;justify-content:center;align-items:center;padding:20px;z-index:99}
-.modal.open{display:flex}
-.modal-box{background:#141420;border:1px solid #2A2A40;border-radius:14px;padding:18px;width:100%;max-width:320px}
-.modal-box h3{margin-bottom:12px;font-size:14px;color:#00E5FF}
-.modal-box input{width:100%;background:#0A0A10;color:#FFF;border:1px solid #303048;padding:8px 10px;border-radius:8px;margin-bottom:12px;font-size:13px}
-.modal-box button{width:100%;background:#FF1744;color:#FFF;border:none;padding:10px;border-radius:8px;font-weight:700}
-</style>
-</head>
-<body>
-
-<div class="hdr">
-  <h1>⚡ WLED LUCES</h1>
-  <button class="hdr-btn" id="btn_cfg">⚙️ 192.168.40.16</button>
-</div>
-
-<div class="vu-box">
-  <div style="display:flex;justify-content:space-between;font-size:11px;color:#888">
-    <span>MICRÓFONO EN VIVO</span>
-    <span id="txt_vol">0%</span>
-  </div>
-  <div class="vu-bar"><div class="vu-val" id="vu_val"></div></div>
-  <div class="fft" id="fft_box"></div>
-</div>
-
-<div class="card-title">Breaks / Calmos</div>
-<div class="grid" id="grid_calmos"></div>
-
-<div class="card-title">Groove / Ritmo</div>
-<div class="grid" id="grid_groove"></div>
-
-<div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-  <span>Paletas de Color</span>
-  <span style="font-size:11px;color:#AAA">Aleatorio cada: <input type="number" id="rnd_t" value="8" min="1" max="60"> s</span>
-</div>
-<div class="pal-grid" id="grid_pal"></div>
-
-<div class="card">
-  <div class="row">
-    <span>Brillo general</span>
-    <input type="range" id="brillo" min="0" max="1" step="0.01" value="0.9">
-    <span id="brillo_v">90%</span>
-  </div>
-  <div class="row">
-    <span>Sensibilidad micro</span>
-    <input type="range" id="sens" min="0.3" max="5" step="0.1" value="1.0">
-    <span id="sens_v">1.0x</span>
-  </div>
-  <div class="row">
-    <span>Girar inicio (Offset)</span>
-    <input type="range" id="offset" min="0" max="149" step="1" value="0">
-    <span id="offset_v">0</span>
-  </div>
-</div>
-
-<div class="modal" id="modal_cfg">
-  <div class="modal-box">
-    <h3>⚙️ Conexión WLED</h3>
-    <label style="font-size:11px;color:#888">Dirección IP</label>
-    <input type="text" id="cfg_ip" value="192.168.40.16">
-    <label style="font-size:11px;color:#888">Número de LEDs</label>
-    <input type="number" id="cfg_leds" value="150">
-    <button id="btn_save_cfg">Guardar y Conectar</button>
-  </div>
-</div>
-
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>WLED TECHNO & MULTI-GENRE</title>
 <script>
-const $=id=>document.getElementById(id);
-const S={efecto:'voz_centro',paleta:'techno',brillo:0.9,sens:1.0,rnd_t:8,ip:'192.168.40.16',leds:150};
+const ALL_FX={rotor:["Rotor","Cometas girando"],paredes:["Paredes","Una pared por beat"],ondas:["Ondas","Explotan con el kick"],cortes:["Cortes","Segmentos que saltan"],pulso:["Pulso","Todo el techo al kick"],scanner:["Scanner","Haces cruzados"],espectro:["Espectro","Frecuencias en 4 paredes"],chispas:["Chispas","Destellos de hi-hat"],relampago:["Relámpago","Paredes al azar con kick/clap"],laser:["Láser","Puntos barriendo cada beat"],espejo:["Espejo","Cometas que chocan"],dembow:["Dembow","Rebote rítmico urbano"],sub808:["Sub 808","Pulso concéntrico 808"],rock_riff:["Rock Riff","Guitarras y batería ruda"],pop_disco:["Disco Pop","Bailarín multicolor pop"],salsa_clave:["Salsa Clave","Sincopado tropical latino"],aurora:["Aurora","Ondas que siguen la melodía"],respira:["Respira","El techo respira por compás"],olas:["Olas","Dos olas flotando"],ambiente:["Ambiente","Degradado lento"],zen:["Zen Relax","Respiración ultra-suave"],matrix:["Matrix Code","Hacker verde cayendo"],perreo:["Perreo Flow","Ondas densas rítmicas"],triplet:["Triplet Chase","Para hi-hats de trap"],moshpit:["Moshpit","Agresivo y distorsionado"],rainbow_chase:["Arcoíris","Giro multicolor pop"],ocean_waves:["Mareas","Tranquilidad abisal"],voz:["Espectro Vocal","Responde a la voz humana"],voz_centro:["Espectro Global","1 sola onda en el medio"],voz_laser:["Contorno Vocal","Anillo que se abre al cantar"],estrellas:["Estrellas","Titilan con hi-hats"],sirena:["Sirena Policial","Barrido rojo y azul"],glitch:["Caos Glitch","Flasheos aleatorios extremos"],corazon:["Latido","Doble pulso suave"],barrido:["Barrido","Ola de color lenta"],solido:["Color Sólido","Luz fija sin parpadeos"]};
+const G3=[["subida","Build-up","Cometas + estrobo acelerando"],["explosion","Drop explosión","Estrobo creciente"],["estrobo","Estrobo","Fijo al BPM"],["calibrar","Calibrar","Ubicar esquinas"]];
 
-const ALL_FX={
-  voz_centro:['Espectro Global','1 sola onda gigante'],
-  voz:['Espectro Vocal','4 ondas (paredes)'],
-  voz_laser:['Contorno Vocal','Anillo brillante'],
-  solido:['Color Sólido','Luz fija y limpia'],
-  aurora:['Aurora','Ondas melódicas'],
-  respira:['Respira','Pulso suave'],
-  olas:['Olas','Olas flotando'],
-  ambiente:['Ambiente','Degradado lento'],
-  corazon:['Latido','Doble pulso'],
-  rotor:['Rotor','Cometas girando'],
-  pulso:['Pulso','Techo al kick'],
-  ondas:['Ondas','Explosión de kick'],
-  paredes:['Paredes','Una pared por beat'],
-  cortes:['Cortes','Segmentos saltando'],
-  scanner:['Scanner','Haces cruzados'],
-  espectro:['Espectro','16 frecuencias'],
-  chispas:['Chispas','Destellos de hi-hat'],
-  relampago:['Relámpago','Golpes al azar'],
-  laser:['Láser','Puntos barriendo'],
-  espejo:['Espejo','Cometas que chocan'],
-  barrido:['Barrido','Ola de color lenta']
+window.PAL = {"rojo_morado": [[255, 0, 0], [128, 0, 128], [255, 255, 255]], "morado_rojo": [[128, 0, 128], [255, 0, 0], [255, 255, 255]], "neon_vampire": [[255, 0, 50], [75, 0, 130], [255, 0, 0]], "dark_sith": [[180, 0, 0], [50, 0, 80], [255, 0, 0]], "techno": [[255, 0, 0], [255, 30, 0], [255, 255, 255]], "rojo_puro": [[255, 0, 0], [180, 0, 0], [255, 255, 255]], "sangre": [[180, 0, 0], [80, 0, 0], [255, 0, 40]], "sith_red": [[255, 0, 0], [100, 0, 0], [0, 0, 0]], "alerta_roja": [[255, 0, 0], [255, 60, 0], [255, 230, 0]], "red_neon": [[255, 0, 80], [255, 0, 0], [255, 120, 160]], "crimson_gold": [[220, 20, 60], [255, 215, 0], [255, 255, 255]], "infierno": [[255, 0, 0], [255, 80, 0], [255, 190, 0]], "fuego": [[255, 0, 0], [255, 100, 0], [255, 230, 0]], "rock_fire": [[255, 0, 0], [255, 75, 0], [255, 255, 255]], "firestorm": [[255, 20, 0], [255, 100, 0], [255, 250, 0]], "magma": [[255, 0, 0], [255, 120, 0], [60, 0, 0]], "rojo_violeta": [[255, 0, 60], [160, 0, 120], [255, 200, 255]], "berlin": [[255, 255, 255], [90, 90, 110], [255, 255, 255]], "uv": [[110, 0, 255], [0, 30, 255], [255, 0, 200]], "acid": [[110, 255, 0], [255, 210, 0], [255, 255, 255]], "cyber": [[0, 229, 255], [255, 0, 229], [255, 255, 255]], "hielo": [[0, 120, 255], [0, 255, 220], [255, 255, 255]], "caribe": [[255, 0, 128], [0, 229, 255], [255, 215, 0]], "street_purple": [[138, 43, 226], [75, 0, 130], [255, 255, 255]], "gold_drip": [[255, 215, 0], [184, 134, 11], [255, 255, 255]], "sunset": [[255, 94, 98], [255, 153, 102], [255, 235, 170]], "ocean": [[0, 105, 148], [72, 209, 204], [224, 255, 255]], "lavender": [[186, 85, 211], [147, 112, 219], [230, 230, 250]], "electric_purple": [[148, 0, 211], [0, 191, 255], [255, 255, 255]], "pop_chicle": [[255, 20, 147], [0, 255, 240], [255, 255, 0]], "disco_gold": [[255, 215, 0], [255, 105, 180], [0, 255, 255]], "tropical_glow": [[255, 140, 0], [0, 200, 80], [255, 215, 0]], "matrix": [[0, 255, 0], [0, 100, 0], [255, 255, 255]], "neon_dreams": [[255, 0, 150], [0, 255, 255], [150, 0, 255]], "deep_sea": [[0, 10, 50], [0, 100, 255], [0, 255, 200]], "forest": [[0, 50, 10], [0, 200, 50], [150, 255, 0]], "gold_rush": [[255, 200, 0], [255, 150, 0], [255, 255, 255]], "toxico": [[0, 255, 60], [180, 255, 0], [255, 0, 100]], "aurora_boreal": [[0, 255, 150], [0, 150, 255], [180, 0, 255]], "galaxia": [[120, 0, 255], [0, 200, 255], [255, 255, 255]], "supernova": [[255, 255, 255], [255, 180, 0], [255, 0, 80]]};
+const GENEROS_DATA = {"techno": {"nombre": "Techno / Rave", "bpm_range": [120, 150], "refract": {"kick": 0.22, "clap": 0.15, "hat": 0.07}, "bandas": {"kick": [35, 120], "clap": [1500, 5000], "hat": [7000, 15000]}, "groove": ["matrix", "rotor", "paredes", "ondas", "cortes", "pulso", "scanner", "espectro", "chispas", "relampago", "laser", "espejo", "barrido"], "break": ["aurora", "respira", "olas", "ambiente", "voz", "voz_centro", "voz_laser", "corazon", "solido"], "paletas": ["techno", "rojo_puro", "sangre", "sith_red", "alerta_roja", "red_neon", "infierno", "fuego", "rock_fire", "berlin", "uv", "acid", "cyber", "hielo", "matrix", "toxico", "galaxia", "supernova", "rojo_morado", "morado_rojo", "neon_vampire", "dark_sith"]}, "reggaeton": {"nombre": "Reggaeton / Urbano", "bpm_range": [85, 108], "refract": {"kick": 0.26, "clap": 0.18, "hat": 0.08}, "bandas": {"kick": [45, 130], "clap": [800, 3800], "hat": [6000, 14000]}, "groove": ["perreo", "dembow", "paredes", "ondas", "pulso", "chispas", "relampago", "espejo", "sirena"], "break": ["respira", "aurora", "olas", "ambiente", "voz", "voz_centro", "voz_laser", "corazon", "solido"], "paletas": ["rojo_puro", "alerta_roja", "red_neon", "crimson_gold", "infierno", "fuego", "firestorm", "caribe", "cyber", "acid", "sunset", "gold_drip", "neon_dreams", "toxico", "rojo_morado", "morado_rojo", "neon_vampire", "dark_sith"]}, "rap": {"nombre": "Rap / Trap / 808", "bpm_range": [65, 105], "refract": {"kick": 0.3, "clap": 0.2, "hat": 0.04}, "bandas": {"kick": [25, 85], "clap": [1000, 4000], "hat": [6000, 16000]}, "groove": ["triplet", "sub808", "pulso", "laser", "espectro", "scanner", "cortes", "sirena", "glitch"], "break": ["ambiente", "aurora", "respira", "voz", "voz_centro", "voz_laser", "corazon", "solido"], "paletas": ["rojo_puro", "sangre", "sith_red", "alerta_roja", "crimson_gold", "street_purple", "gold_rush", "gold_drip", "uv", "berlin", "cyber", "galaxia", "red_neon", "rojo_morado", "morado_rojo", "neon_vampire", "dark_sith"]}, "rock": {"nombre": "Rock / Metal / Punk", "bpm_range": [105, 175], "refract": {"kick": 0.16, "clap": 0.12, "hat": 0.06}, "bandas": {"kick": [50, 140], "clap": [800, 4500], "hat": [4500, 13000]}, "groove": ["moshpit", "rock_riff", "relampago", "cortes", "paredes", "pulso", "chispas", "glitch"], "break": ["aurora", "olas", "respira", "voz", "voz_centro", "voz_laser", "corazon", "solido"], "paletas": ["rock_fire", "rojo_puro", "sangre", "sith_red", "alerta_roja", "magma", "infierno", "firestorm", "fuego", "electric_purple", "berlin", "supernova", "rojo_morado", "morado_rojo", "neon_vampire", "dark_sith"]}, "pop": {"nombre": "Pop / Dance / Disco", "bpm_range": [110, 132], "refract": {"kick": 0.23, "clap": 0.15, "hat": 0.07}, "bandas": {"kick": [45, 125], "clap": [1000, 4500], "hat": [6500, 15000]}, "groove": ["rainbow_chase", "pop_disco", "rotor", "scanner", "espejo", "pulso", "ondas", "estrellas", "barrido"], "break": ["respira", "aurora", "ambiente", "voz", "voz_centro", "voz_laser", "corazon", "solido"], "paletas": ["red_neon", "rojo_violeta", "crimson_gold", "alerta_roja", "neon_dreams", "pop_chicle", "disco_gold", "cyber", "caribe", "sunset", "aurora_boreal", "supernova", "rojo_morado", "morado_rojo", "neon_vampire", "dark_sith"]}, "tropical": {"nombre": "Salsa / Cumbia / Tropical", "bpm_range": [88, 115], "refract": {"kick": 0.25, "clap": 0.16, "hat": 0.06}, "bandas": {"kick": [60, 180], "clap": [1200, 5500], "hat": [5000, 15000]}, "groove": ["salsa_clave", "dembow", "paredes", "ondas", "chispas", "barrido"], "break": ["olas", "respira", "ambiente", "voz", "voz_centro", "voz_laser", "corazon", "solido"], "paletas": ["rojo_puro", "crimson_gold", "fuego", "infierno", "alerta_roja", "tropical_glow", "caribe", "sunset", "gold_rush", "disco_gold", "rojo_morado", "morado_rojo", "neon_vampire", "dark_sith"]}, "relax": {"nombre": "Relajaci\u00f3n / Chill", "bpm_range": [50, 85], "refract": {"kick": 0.45, "clap": 0.35, "hat": 0.2}, "bandas": {"kick": [30, 150], "clap": [500, 3000], "hat": [3000, 10000]}, "groove": ["ocean_waves", "zen", "aurora", "respira", "olas", "ambiente", "voz", "voz_centro", "voz_laser", "corazon", "estrellas"], "break": ["ocean_waves", "zen", "aurora", "respira", "olas", "ambiente", "voz", "voz_centro", "voz_laser", "corazon", "estrellas", "solido"], "paletas": ["sangre", "rojo_violeta", "sunset", "deep_sea", "forest", "ocean", "lavender", "hielo", "aurora_boreal", "galaxia", "rojo_morado", "morado_rojo", "neon_vampire", "dark_sith"]}};
+
+let S = {
+  auto: false, efecto: 'voz_centro', paleta: 'techno', genero: 'techno',
+  brillo: 0.9, sens: 2.0, frase: 8, div: 4, estrobo_auto: true, chispas: true,
+  paleta_drop: true, offset: 0, invertir: false, hold: null, rotar_paleta: true,
+  drop_compases: 2, drop_max: 16, adelanto: 70, apagon: 1.0, rnd_t: 8,
+  ip: '192.168.40.16', leds: 150, conectado: true,
+  generos: GENEROS_DATA
 };
 
-const CALMOS=['voz_centro','voz','voz_laser','solido','aurora','respira','olas','ambiente','corazon'];
-const GROOVE=['rotor','pulso','ondas','paredes','cortes','scanner','espectro','chispas','relampago','laser','espejo','barrido'];
+let L = { bpm: 128, beat: 0, volumen: 0, tension: 0, lock: 0, espectro: [], actual: 'voz_centro' };
+const $ = id => document.getElementById(id);
 
-const PALETAS={
-  aleatoria:[[255,23,68],[0,229,255],[124,0,255]],
-  rojo_morado:[[255,0,0],[128,0,128],[255,255,255]],
-  morado_rojo:[[128,0,128],[255,0,0],[255,255,255]],
-  neon_vampire:[[255,0,50],[75,0,130],[255,0,0]],
-  dark_sith:[[180,0,0],[50,0,80],[255,0,0]],
-  techno:[[255,0,0],[255,30,0],[255,255,255]],
-  rojo_puro:[[255,0,0],[180,0,0],[255,255,255]],
-  sangre:[[180,0,0],[80,0,0],[255,0,40]],
-  sith_red:[[255,0,0],[100,0,0],[0,0,0]],
-  alerta_roja:[[255,0,0],[255,60,0],[255,230,0]],
-  red_neon:[[255,0,80],[255,0,0],[255,120,160]],
-  crimson_gold:[[220,20,60],[255,215,0],[255,255,255]],
-  infierno:[[255,0,0],[255,80,0],[255,190,0]],
-  fuego:[[255,0,0],[255,100,0],[255,230,0]],
-  cyber:[[0,229,255],[255,0,229],[255,255,255]],
-  matrix:[[0,255,0],[0,100,0],[255,255,255]],
-  galaxia:[[120,0,255],[0,200,255],[255,255,255]]
-};
-
-function send(obj){
-  if(window.AndroidBridge && window.AndroidBridge.set){
-    window.AndroidBridge.set(JSON.stringify(obj));
+function set(o) {
+  Object.assign(S, o);
+  if (window.AndroidBridge && window.AndroidBridge.set) {
+    window.AndroidBridge.set(JSON.stringify(o));
   }
 }
 
-// Generar botones
-function mkBtn(id, cont){
-  const [n,d] = ALL_FX[id] || [id,''];
-  const b = document.createElement('button');
-  b.className = 'btn';
-  b.id = 'fx_' + id;
-  b.innerHTML = n + '<small>' + d + '</small>';
-  b.onclick = ()=>{
-    S.efecto = id;
-    send({efecto: id});
-    pintar();
-  };
-  $(cont).appendChild(b);
+function trigger(e) {
+  set({ evento: e });
 }
-CALMOS.forEach(id=>mkBtn(id,'grid_calmos'));
-GROOVE.forEach(id=>mkBtn(id,'grid_groove'));
-
-// Generar paletas
-Object.keys(PALETAS).forEach(p=>{
-  const cols = PALETAS[p].map(c=>'rgb('+c.join(',')+')');
-  const b = document.createElement('button');
-  b.className = 'pal-btn';
-  b.id = 'pal_' + p;
-  b.innerHTML = '<span style="background:linear-gradient(90deg,'+cols.join(',')+')"></span><div>' + (p==='aleatoria'?'🎲 Aleatoria':p) + '</div>';
-  b.onclick = ()=>{
-    S.paleta = p;
-    send({paleta: p});
-    pintar();
-  };
-  $('grid_pal').appendChild(b);
-});
 
 // Generar barras FFT
-for(let i=0;i<16;i++){
-  const d=document.createElement('div');
-  d.id='fft_'+i;
-  $('fft_box').appendChild(d);
+const fftContainer = $('fft_bars');
+if (fftContainer) {
+  fftContainer.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const b = document.createElement('div');
+    b.className = 'fft-bar';
+    b.id = 'fft_' + i;
+    fftContainer.appendChild(b);
+  }
 }
 
-function pintar(){
-  document.querySelectorAll('.btn').forEach(b=>b.classList.toggle('on',b.id==='fx_'+S.efecto));
-  document.querySelectorAll('.pal-btn').forEach(b=>b.classList.toggle('on',b.id==='pal_'+S.paleta));
+function mk_btn(id, g) {
+  if (!ALL_FX[id]) return;
+  const [n, d] = ALL_FX[id];
+  const b = document.createElement('button');
+  b.className = 'fx';
+  b.id = 'fx_' + id;
+  b.innerHTML = n + '<small>' + d + '</small>';
+  b.onclick = () => {
+    if (!S.auto && S.efecto == id) {
+      S.auto = true; set({ auto: true });
+    } else {
+      S.auto = false; S.efecto = id; set({ efecto: id, auto: false });
+    }
+    pintar();
+  };
+  $(g).append(b);
 }
 
-$('rnd_t').oninput=()=>{
-  const val=parseFloat($('rnd_t').value)||8;
-  S.rnd_t=val;
-  S.paleta='aleatoria';
-  send({rnd_t:val, paleta:'aleatoria'});
-  pintar();
-};
+function renderGrid(g) {
+  const cfg = S.generos[g] || S.generos['techno'];
+  $('g1').innerHTML = '';
+  $('g2').innerHTML = '';
+  $('pal').innerHTML = '';
 
-$('brillo').oninput=()=>{
-  const v=parseFloat($('brillo').value);
-  $('brillo_v').textContent=Math.round(v*100)+'%';
-  send({brillo:v});
-};
+  cfg.groove.forEach(id => mk_btn(id, 'g1'));
+  cfg.break.forEach(id => mk_btn(id, 'g2'));
 
-$('sens').oninput=()=>{
-  const v=parseFloat($('sens').value);
-  $('sens_v').textContent=v.toFixed(1)+'x';
-  send({sens:v});
-};
+  // Botón Aleatoria
+  const br = document.createElement('button');
+  br.dataset.p = 'aleatoria';
+  br.innerHTML = '<span style="background:linear-gradient(90deg,#ff1744,#00e5ff,#7c00ff)"></span><div>🎲 Aleatoria</div>';
+  br.onclick = () => {
+    S.paleta = 'aleatoria';
+    set({ paleta: 'aleatoria' });
+    pintar();
+  };
+  $('pal').appendChild(br);
 
-$('offset').oninput=()=>{
-  const v=parseInt($('offset').value);
-  $('offset_v').textContent=v;
-  send({offset:v});
-};
+  cfg.paletas.forEach(p => {
+    if (!window.PAL[p]) return;
+    const c = window.PAL[p].map(x => 'rgb(' + x + ')');
+    const b = document.createElement('button');
+    b.dataset.p = p;
+    b.innerHTML = '<span style="background:linear-gradient(90deg,' + c.join(',') + ')"></span><div>' + p + '</div>';
+    b.onclick = () => {
+      S.paleta = p;
+      set({ paleta: p });
+      pintar();
+    };
+    $('pal').append(b);
+  });
+}
 
-$('btn_cfg').onclick=()=>$('modal_cfg').classList.add('open');
-$('btn_save_cfg').onclick=()=>{
-  const ip=$('cfg_ip').value.trim();
-  const leds=parseInt($('cfg_leds').value)||150;
-  S.ip=ip; S.leds=leds;
-  $('btn_cfg').textContent='⚙️ '+ip;
-  if(window.AndroidBridge && window.AndroidBridge.connect){
+function mk_g3(list, g) {
+  $('g3').innerHTML = '';
+  list.forEach(([id, n, d]) => {
+    const b = document.createElement('button');
+    b.className = 'fx';
+    b.id = 'fx_' + id;
+    b.innerHTML = n + '<small>' + d + '</small>';
+    b.onclick = () => {
+      if (!S.auto && S.efecto == id) {
+        S.auto = true; set({ auto: true });
+      } else {
+        S.auto = false; S.efecto = id; set({ efecto: id, auto: false });
+      }
+      pintar();
+    };
+    $(g).append(b);
+  });
+}
+mk_g3(G3, 'g3');
+
+// Botones de Género
+document.querySelectorAll('.genre-btn').forEach(btn => {
+  btn.onclick = () => {
+    const g = btn.dataset.g;
+    S.genero = g;
+    set({ genero: g });
+    document.querySelectorAll('.genre-btn').forEach(b => b.classList.toggle('on', b.dataset.g == g));
+    renderGrid(g);
+    pintar();
+  };
+});
+
+$('auto').onclick = () => { S.auto = !S.auto; set({ auto: S.auto }); pintar(); };
+
+// Pads
+function hold(id, v) {
+  const b = $('p_' + id);
+  if (!b) return;
+  const on = () => set({ hold: v }), off = () => set({ hold: null });
+  b.onpointerdown = on; b.onpointerup = off; b.onpointerleave = off; b.onpointercancel = off;
+  b.oncontextmenu = e => e.preventDefault();
+}
+hold('strobe', 'strobe'); hold('blinder', 'blinder'); hold('blackout', 'blackout'); hold('flash', 'flash');
+$('p_drop').onclick = () => set({ evento: 'drop' });
+$('p_tap').onclick = () => set({ evento: 'tap' });
+
+$('t_kick').onclick = () => trigger('test_kick');
+$('t_hat').onclick = () => trigger('test_hat');
+$('t_drop').onclick = () => trigger('drop');
+$('t_tap').onclick = () => trigger('tap');
+
+// Modal de Conexión
+$('btn_conn').onclick = () => {
+  $('cfg_ip').value = S.ip;
+  $('cfg_leds').value = S.leds;
+  $('conn_modal').classList.add('open');
+};
+$('m_close').onclick = () => $('conn_modal').classList.remove('open');
+
+$('btn_do_connect').onclick = () => {
+  const ip = $('cfg_ip').value.trim();
+  const leds = parseInt($('cfg_leds').value.trim()) || 150;
+  if (!ip) return alert('Ingresa una dirección IP válida');
+  S.ip = ip; S.leds = leds; S.conectado = true;
+  if (window.AndroidBridge && window.AndroidBridge.connect) {
     window.AndroidBridge.connect(ip, leds);
   }
-  $('modal_cfg').classList.remove('open');
+  $('hdr_info').textContent = 'WLED ' + ip + ' (' + leds + ' LEDs)';
+  $('conn_dot').classList.remove('off');
+  $('conn_txt').textContent = 'Conectado';
+  $('conn_modal').classList.remove('open');
 };
 
-window.onAndroidLive=function(d){
-  if(!d) return;
-  $('vu_val').style.width=Math.min(100, Math.round(d.volumen*100))+'%';
-  $('txt_vol').textContent=Math.round(d.volumen*100)+'%';
-  if(d.espectro){
-    for(let i=0;i<16 && i<d.espectro.length;i++){
-      const el=$('fft_'+i);
-      if(el) el.style.height=Math.max(10, Math.round(d.espectro[i]*100))+'%';
+$('btn_do_disconnect').onclick = () => {
+  S.conectado = false;
+  if (window.AndroidBridge && window.AndroidBridge.disconnect) {
+    window.AndroidBridge.disconnect();
+  }
+  $('conn_dot').classList.add('off');
+  $('conn_txt').textContent = 'Desconectado';
+  $('conn_modal').classList.remove('open');
+};
+
+// Sliders y opciones
+['brillo', 'sens', 'offset', 'adelanto'].forEach(k => {
+  const el = $(k);
+  if (el) {
+    el.oninput = () => {
+      $(k + '_v').textContent = el.value + (k === 'brillo' ? '' : k === 'sens' ? 'x' : '');
+      set({ [k]: parseFloat(el.value) });
+    };
+  }
+});
+
+['frase', 'div', 'drop_compases', 'drop_max'].forEach(k => {
+  const el = $(k);
+  if (el) el.onchange = () => set({ [k]: parseInt(el.value) });
+});
+
+if ($('apagon')) $('apagon').onchange = () => set({ apagon: parseFloat($('apagon').value) });
+
+['estrobo_auto', 'chispas', 'paleta_drop', 'rotar_paleta', 'invertir'].forEach(k => {
+  const el = $(k);
+  if (el) el.onchange = () => set({ [k]: el.checked });
+});
+
+if ($('rnd_t')) {
+  $('rnd_t').oninput = () => {
+    let v = parseInt($('rnd_t').value) || 8;
+    S.paleta = 'aleatoria';
+    set({ rnd_t: v, paleta: 'aleatoria' });
+    pintar();
+  };
+}
+
+function pintar() {
+  $('auto').classList.toggle('on', S.auto);
+  $('auto').textContent = S.auto ? 'AUTO VJ · ACTIVO' : 'AUTO VJ · MANUAL';
+  document.querySelectorAll('.fx').forEach(b => b.classList.toggle('on', !S.auto && b.id == 'fx_' + S.efecto));
+  document.querySelectorAll('.pal button').forEach(b => b.classList.toggle('on', b.dataset.p == S.paleta));
+  document.querySelectorAll('.genre-btn').forEach(b => b.classList.toggle('on', b.dataset.g == (S.genero || 'techno')));
+}
+
+// 2D Canvas Room
+const roomCanvas = $('room');
+const roomCtx = roomCanvas ? roomCanvas.getContext('2d') : null;
+
+function drawRoom(beat, volumen) {
+  if (!roomCtx) return;
+  const w = roomCanvas.width, h = roomCanvas.height;
+  roomCtx.fillStyle = '#0a0a10';
+  roomCtx.fillRect(0, 0, w, h);
+
+  // Paredes cuadradas representando la habitación de LEDs
+  roomCtx.strokeStyle = beat ? '#ff1744' : '#00e5ff';
+  roomCtx.lineWidth = 4 + volumen * 6;
+  roomCtx.strokeRect(20, 20, w - 40, h - 40);
+
+  // Pulso central
+  roomCtx.beginPath();
+  roomCtx.arc(w / 2, h / 2, 10 + volumen * 40, 0, Math.PI * 2);
+  roomCtx.fillStyle = beat ? '#ff174488' : '#00e5ff44';
+  roomCtx.fill();
+}
+
+// Transmisión en vivo desde Android
+window.onLiveStream = function(d) {
+  if (!d) return;
+  L = d;
+  if ($('bpm')) $('bpm').textContent = Math.round(d.bpm || 128);
+  if ($('now')) $('now').textContent = ALL_FX[d.efecto] ? ALL_FX[d.efecto][0] : d.efecto;
+  if ($('vu_val')) $('vu_val').style.width = Math.min(100, Math.round((d.volumen || 0) * 100)) + '%';
+  if ($('ten_val')) $('ten_val').style.width = Math.min(100, Math.round((d.vocal || 0) * 100)) + '%';
+
+  // Dots de ritmo
+  document.querySelectorAll('.dots i').forEach((x, i) => x.classList.toggle('on', i === d.beat));
+
+  // FFT Bars
+  if (d.espectro) {
+    for (let i = 0; i < 16 && i < d.espectro.length; i++) {
+      const b = $('fft_' + i);
+      if (b) b.style.height = Math.max(8, Math.round(d.espectro[i] * 100)) + '%';
     }
   }
+
+  drawRoom(d.kick, d.volumen);
 };
 
-pintar();
+// Inicialización desde AndroidBridge
+function init() {
+  if (window.AndroidBridge && window.AndroidBridge.getState) {
+    try {
+      const st = JSON.parse(window.AndroidBridge.getState());
+      Object.assign(S, st);
+    } catch (e) {}
+  }
+  $('hdr_info').textContent = 'WLED ' + S.ip + ' (' + S.leds + ' LEDs)';
+  if ($('brillo')) { $('brillo').value = S.brillo; $('brillo_v').textContent = S.brillo; }
+  if ($('sens')) { $('sens').value = S.sens; $('sens_v').textContent = S.sens + 'x'; }
+  if ($('rnd_t')) $('rnd_t').value = S.rnd_t;
+
+  renderGrid(S.genero || 'techno');
+  pintar();
+}
+
+init();
 </script>
 </body>
 </html>
