@@ -40,8 +40,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.0.0
-          name: "WLED Luces App v2.0.0 (UI/UX Refactor Integral)"
+          tag_name: v2.1.0
+          name: "WLED Luces App v2.1.0 (Auto VJ Director Engine Fix)"
           body: "Descarga el archivo app-debug.apk directamente en tu celular Android e instálalo."
           files: app/build/outputs/apk/debug/app-debug.apk
         env:

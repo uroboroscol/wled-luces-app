@@ -93,9 +93,12 @@ public class MainActivity extends AppCompatActivity {
             d.put("kick", f.kick);
             d.put("hat", f.hat);
             d.put("vocal", (double) f.vocal);
-            d.put("paleta", engine.getPaleta());
-            d.put("efecto", engine.getEfecto());
+            d.put("paleta", engine.getCurPaleta());
+            d.put("actual", engine.getEfectoActivo());
+            d.put("efecto", engine.getEfectoActivo());
             d.put("genero", engine.getGenero());
+            d.put("seccion", engine.getSeccion());
+            d.put("auto", engine.isAuto());
             d.put("conectado", s.getUdpSender().isConectado());
 
             JSONArray spec = new JSONArray();

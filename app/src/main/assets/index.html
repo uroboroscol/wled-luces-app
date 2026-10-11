@@ -2278,15 +2278,22 @@ function pintar() {
     $('sticky_auto').classList.toggle('on', S.auto);
     $('sticky_auto_txt').textContent = S.auto ? 'AUTO VJ' : 'MANUAL';
   }
-  document.querySelectorAll('.fx-card').forEach(b => b.classList.toggle('on', !S.auto && b.id === 'fx_' + S.efecto));
-  document.querySelectorAll('.pal-card').forEach(b => b.classList.toggle('on', b.dataset.p === S.paleta));
+  const fxActivo = S.auto ? (L.actual || S.efecto) : S.efecto;
+  document.querySelectorAll('.fx-card').forEach(b => b.classList.toggle('on', b.id === 'fx_' + fxActivo));
+  const palActiva = S.auto ? (L.paleta || S.paleta) : S.paleta;
+  document.querySelectorAll('.pal-card').forEach(b => b.classList.toggle('on', b.dataset.p === palActiva));
   document.querySelectorAll('.genre-chip').forEach(b => b.classList.toggle('on', b.dataset.g === (S.genero || 'techno')));
 }
 
 window.onLiveStream = function(d) {
   if (!d) return;
+  const prevActual = L.actual;
+  const prevPaleta = L.paleta;
   L = d;
   if ($('bpm')) $('bpm').textContent = Math.round(d.bpm || 128);
+  if (S.auto && (d.actual !== prevActual || d.paleta !== prevPaleta)) {
+    pintar();
+  }
   if ($('now')) $('now').textContent = ALL_FX[d.actual || d.efecto] ? ALL_FX[d.actual || d.efecto][0] : (d.actual || d.efecto || '-');
   
   const volPct = Math.min(100, Math.round((d.volumen || 0) * 100));
